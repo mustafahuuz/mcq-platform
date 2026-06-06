@@ -1,0 +1,156 @@
+import os
+import django
+import docx
+import json
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mcq_backend.settings')
+django.setup()
+
+from core.models import QuestionBank, SubjectSummary, User
+
+SUMMARY_DIR = r"F:\PHD-MSQ\MCQ_System\book_summary"
+
+def parse_docx_to_layered_json(file_path):
+    doc = docx.Document(file_path)
+    
+    level_1_points = []
+    level_2_paragraphs = []
+    mistakes = []
+    definitions = []
+    
+    current_topic = os.path.basename(file_path).replace('.docx', '').replace('_', ' ')
+    
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            continue
+            
+        # Detect bullets
+        is_list = para.style and para.style.name and para.style.name.startswith('List')
+        if is_list or text.startswith('-') or text.startswith('•'):
+            clean_text = text.lstrip('-•* \t')
+            # Look for mistake markers
+            if 'mistake' in clean_text.lower() or 'error' in clean_text.lower() or '⚠' in clean_text:
+                mistakes.append(clean_text)
+            else:
+                level_1_points.append(clean_text)
+            continue
+            
+        # Detect bold runs for definitions
+        has_bold = any(run.bold for run in para.runs)
+        if has_bold and ':' in text and len(text) < 150:
+            parts = text.split(':', 1)
+            definitions.append({
+                'term': parts[0].strip(),
+                'meaning': parts[1].strip()
+            })
+            level_1_points.append(text)
+            continue
+            
+        # Otherwise, regular paragraph goes to level 2
+        level_2_paragraphs.append(text)
+        
+    # If no bullet points found, extract sentences from first paragraph
+    if not level_1_points and level_2_paragraphs:
+        first_para = level_2_paragraphs[0]
+        sentences = [s.strip() + '.' for s in first_para.split('.') if s.strip()]
+        level_1_points = sentences[:3]
+        
+        
+    # Split the paragraphs: first 60% to Level 2 (Summary), remaining 40% to Level 3 (Deep Dive)
+    total_paras = len(level_2_paragraphs)
+    split_idx = int(total_paras * 0.6)
+    
+    l2_content = level_2_paragraphs[:split_idx]
+    l3_content = level_2_paragraphs[split_idx:]
+    
+    if not l2_content:
+        l2_content = ["No detailed summary available."]
+    if not l3_content:
+        l3_content = ["Further deep explanations were not found in the original document."]
+        
+    full_text = " ".join(level_1_points + level_2_paragraphs)
+    word_count = len(full_text.split())
+    read_time_mins = max(1, round(word_count / 200)) # Avg reading speed 200 wpm
+        
+    return {
+        'topic_title': current_topic,
+        'read_time': f"{read_time_mins} mins",
+        'word_count': word_count,
+        'content_json': {
+            'level_1': level_1_points[:5], # Keep it concise for level 1
+            'level_2': "\n\n".join(l2_content),
+            'level_3': "\n\n".join(l3_content),
+            'definitions': definitions,
+            'mistakes': mistakes
+        }
+    }
+
+def run_import():
+    if not os.path.exists(SUMMARY_DIR):
+        print(f"Directory not found: {SUMMARY_DIR}")
+        return
+        
+    admin_user, _ = User.objects.get_or_create(username='admin', defaults={'role': 'Admin'})
+    
+    # Simple mapping of filename keywords to subjects
+    subject_keywords = {
+        'Deep_Learning': 'Advances in Deep Learning',
+        'DataMining': 'Data Mining',
+        'Cloud Computing': 'Handbook of Cloud Computing',
+        'Internet of Things': 'Internet of Things',
+        'Multimedia': 'Fundamentals of Multimedia',
+        'Crypto': 'Cryptography and Network Security',
+    }
+    
+    count = 0
+    for filename in os.listdir(SUMMARY_DIR):
+        if not filename.endswith('.docx'):
+            continue
+            
+        file_path = os.path.join(SUMMARY_DIR, filename)
+        print(f"Processing {filename}...")
+        
+        parsed_data = parse_docx_to_layered_json(file_path)
+        
+        # Determine bank
+        mapped_subject = 'Uncategorized'
+        for key, subj in subject_keywords.items():
+            if key in filename:
+                mapped_subject = subj
+                break
+                
+        bank, _ = QuestionBank.objects.get_or_create(
+            subject=mapped_subject,
+            defaults={'created_by': admin_user}
+        )
+        
+        # Determine difficulty based on length and topic
+        diff = 'Medium'
+        if parsed_data['word_count'] > 8000 or 'Deep Learning' in mapped_subject or 'Crypto' in mapped_subject:
+            diff = 'Hard'
+        elif parsed_data['word_count'] < 2000:
+            diff = 'Easy'
+            
+        # Determine focus area
+        focus = f"{mapped_subject} Fundamentals"
+        if parsed_data['content_json']['definitions']:
+            focus = f"Key Definitions & {mapped_subject.split()[-1]}"
+        
+        # Create summary
+        SubjectSummary.objects.update_or_create(
+            bank=bank,
+            topic_title=parsed_data['topic_title'],
+            defaults={
+                'read_time': parsed_data['read_time'],
+                'difficulty': diff,
+                'focus_area': focus,
+                'content_json': parsed_data['content_json']
+            }
+        )
+        count += 1
+        
+    print(f"Successfully processed {count} document(s).")
+
+if __name__ == '__main__':
+    run_import()

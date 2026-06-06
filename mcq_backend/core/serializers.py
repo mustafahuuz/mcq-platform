@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, QuestionBank, Question, Option, Exam, ExamAttempt, AttemptAnswer
+from .models import User, QuestionBank, Question, Option, Exam, ExamAttempt, AttemptAnswer, SubjectSummary
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,17 +13,24 @@ class OptionSerializer(serializers.ModelSerializer):
 
 class QuestionSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, read_only=True)
+    subject = serializers.CharField(source='bank.subject', read_only=True)
 
     class Meta:
         model = Question
-        fields = ['id', 'bank', 'content', 'difficulty', 'tags', 'options']
+        fields = ['id', 'bank', 'subject', 'content', 'difficulty', 'tags', 'options']
+
+class SubjectSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubjectSummary
+        fields = ['id', 'bank', 'topic_title', 'read_time', 'focus_area', 'difficulty', 'content_json']
 
 class QuestionBankSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, read_only=True)
+    summaries = SubjectSummarySerializer(many=True, read_only=True)
 
     class Meta:
         model = QuestionBank
-        fields = ['id', 'subject', 'created_by', 'created_at', 'questions']
+        fields = ['id', 'subject', 'created_by', 'created_at', 'questions', 'summaries']
 
 class ExamSerializer(serializers.ModelSerializer):
     class Meta:

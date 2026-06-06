@@ -78,3 +78,15 @@ class AttemptAnswer(models.Model):
 
     def __str__(self):
         return f"{self.attempt.id} - {self.question.id}"
+
+class SubjectSummary(models.Model):
+    bank = models.ForeignKey(QuestionBank, on_delete=models.CASCADE, related_name='summaries')
+    topic_title = models.CharField(max_length=255)
+    read_time = models.CharField(max_length=50, default="3 mins")
+    focus_area = models.CharField(max_length=255, blank=True)
+    difficulty = models.CharField(max_length=50, default="Medium")
+    # content_json will store the hierarchical structure: { level_1: [], level_2: "", level_3: "", mistakes: [] }
+    content_json = models.JSONField(default=dict)
+    
+    def __str__(self):
+        return f"{self.topic_title} ({self.bank.subject})"

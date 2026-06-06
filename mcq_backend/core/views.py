@@ -1,10 +1,10 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import User, QuestionBank, Question, Option, Exam, ExamAttempt, AttemptAnswer
+from .models import User, QuestionBank, Question, Option, Exam, ExamAttempt, AttemptAnswer, SubjectSummary
 from .serializers import (
     UserSerializer, QuestionBankSerializer, QuestionSerializer, 
-    OptionSerializer, ExamSerializer, ExamAttemptSerializer, AttemptAnswerSerializer
+    OptionSerializer, ExamSerializer, ExamAttemptSerializer, AttemptAnswerSerializer, SubjectSummarySerializer
 )
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -14,6 +14,37 @@ class UserViewSet(viewsets.ModelViewSet):
 class QuestionBankViewSet(viewsets.ModelViewSet):
     queryset = QuestionBank.objects.all()
     serializer_class = QuestionBankSerializer
+
+    @action(detail=False, methods=['post'])
+    def bulk_import(self, request):
+        questions_data = request.data.get('questions', [])
+        if not questions_data:
+            return Response({'error': 'No questions provided'}, status=400)
+            
+        admin_user, _ = User.objects.get_or_create(username='admin', defaults={'role': 'Admin'})
+        imported_count = 0
+        
+        for q_data in questions_data:
+            bank_name = q_data.get('subject', 'Imported Bank')
+            bank, _ = QuestionBank.objects.get_or_create(subject=bank_name, defaults={'created_by': admin_user})
+            
+            question = Question.objects.create(
+                bank=bank,
+                content=q_data.get('content', ''),
+                difficulty=q_data.get('difficulty', 'Medium'),
+                tags=q_data.get('tags', '')
+            )
+            
+            for opt in q_data.get('options', []):
+                Option.objects.create(
+                    question=question,
+                    content=opt.get('content', ''),
+                    is_correct=opt.get('is_correct', False),
+                    explanation=opt.get('explanation', '')
+                )
+            imported_count += 1
+            
+        return Response({'status': 'success', 'imported_count': imported_count})
 
 class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
@@ -80,3 +111,7 @@ class ExamAttemptViewSet(viewsets.ModelViewSet):
 class AttemptAnswerViewSet(viewsets.ModelViewSet):
     queryset = AttemptAnswer.objects.all()
     serializer_class = AttemptAnswerSerializer
+
+class SubjectSummaryViewSet(viewsets.ModelViewSet):
+    queryset = SubjectSummary.objects.all()
+    serializer_class = SubjectSummarySerializer
