@@ -122,7 +122,7 @@ const ExamView = () => {
                 <div style={{ background: getSubjectColor(q.subject || 'General'), color: '#fff', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-block' }}>
                     {q.subject || 'General'}
                 </div>
-                {q.tags && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{q.tags}</div>}
+                {q.tags && q.tags !== q.subject && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'right', flex: 1, marginLeft: '1rem' }}>{q.tags}</div>}
             </div>
             <h3 className="mb-2" style={{color: 'var(--text-primary)', fontSize: '1.25rem', marginTop: '0.5rem'}}>{idx + 1}. {q.content}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginTop: '1.5rem', flex: 1, alignContent: 'start' }}>
