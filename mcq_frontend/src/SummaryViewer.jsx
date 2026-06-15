@@ -14,6 +14,7 @@ const SummaryViewer = () => {
     const [loading, setLoading] = useState(true);
     const [examMode, setExamMode] = useState(false);
     const [expandedLayers, setExpandedLayers] = useState({}); // { summaryId: currentLevel (1, 2, or 3) }
+    const [selectedSubjects, setSelectedSubjects] = useState([]);
 
     useEffect(() => {
         axios.get('/api/summaries/')
@@ -29,9 +30,14 @@ const SummaryViewer = () => {
                     }));
                     setSummaries(summariesWithSubject);
                     
+                    
                     const initLayers = {};
                     summariesWithSubject.forEach(s => initLayers[s.id] = 1);
                     setExpandedLayers(initLayers);
+                    
+                    const uniqueSubjects = [...new Set(summariesWithSubject.map(s => s.subject_name))];
+                    setSelectedSubjects(uniqueSubjects);
+                    
                     setLoading(false);
                 });
             })
@@ -91,9 +97,62 @@ const SummaryViewer = () => {
                     <span style={{ fontWeight: examMode ? 'bold' : 'normal', color: examMode ? 'var(--danger-color)' : 'var(--text-secondary)' }}>Exam Mode ⚡</span>
                 </div>
             </div>
+            
+            {/* Filter Section */}
+            {summaries.length > 0 && (
+                <div style={{ marginBottom: '2.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h4 style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', letterSpacing: '1px', textTransform: 'uppercase', margin: 0 }}>Filter Subjects</h4>
+                        <button 
+                            onClick={() => {
+                                const allSubjects = [...new Set(summaries.map(s => s.subject_name))];
+                                if (selectedSubjects.length === allSubjects.length) {
+                                    setSelectedSubjects([]);
+                                } else {
+                                    setSelectedSubjects(allSubjects);
+                                }
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                            {selectedSubjects.length === [...new Set(summaries.map(s => s.subject_name))].length ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem' }}>
+                        {[...new Set(summaries.map(s => s.subject_name))].map(subject => {
+                            const isSelected = selectedSubjects.includes(subject);
+                            return (
+                                <button
+                                    key={subject}
+                                    onClick={() => {
+                                        if (isSelected) {
+                                            setSelectedSubjects(prev => prev.filter(s => s !== subject));
+                                        } else {
+                                            setSelectedSubjects(prev => [...prev, subject]);
+                                        }
+                                    }}
+                                    style={{
+                                        background: isSelected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                        border: `1px solid ${isSelected ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                                        color: isSelected ? 'var(--primary-color)' : 'var(--text-secondary)',
+                                        padding: '0.6rem 1.2rem',
+                                        borderRadius: '20px',
+                                        cursor: 'pointer',
+                                        fontWeight: isSelected ? 'bold' : 'normal',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    {isSelected && <span>✓</span>} {subject}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {summaries.map(summary => {
+                {summaries.filter(summary => selectedSubjects.includes(summary.subject_name)).map(summary => {
                     const data = summary.content_json || {};
                     const level = expandedLayers[summary.id] || 1;
                     const subjectColor = getSubjectColor(summary.topic_title); // Or we could use bank subject color if we linked it
