@@ -13,30 +13,38 @@ SUMMARY_DIR = os.path.join(BASE_DIR, 'book_summary')
 
 def runs_to_markdown(para):
     md_text = ""
-    for run in para.runs:
-        text = run.text
-        if not text.strip():
-            md_text += text
-            continue
+    for child in para._element.xpath('.//*[local-name()="r"] | .//*[local-name()="oMath"]'):
+        if child.tag.endswith('oMath'):
+            eq_text = "".join(node.text for node in child.xpath('.//*[local-name()="t"]') if node.text)
+            if eq_text:
+                md_text += f"${eq_text}$"
+        elif child.tag.endswith('r'):
+            text = "".join(node.text for node in child.xpath('.//*[local-name()="t"]') if node.text)
+            if not text.strip():
+                md_text += text
+                continue
+                
+            is_bold = child.xpath('.//*[local-name()="b"]')
+            is_italic = child.xpath('.//*[local-name()="i"]')
             
-        if run.bold:
-            left_space = len(text) - len(text.lstrip())
-            right_space = len(text) - len(text.rstrip())
-            core = text.strip()
-            if core:
-                md_text += (" " * left_space) + f"**{core}**" + (" " * right_space)
+            if is_bold:
+                left_space = len(text) - len(text.lstrip())
+                right_space = len(text) - len(text.rstrip())
+                core = text.strip()
+                if core:
+                    md_text += (" " * left_space) + f"**{core}**" + (" " * right_space)
+                else:
+                    md_text += text
+            elif is_italic:
+                left_space = len(text) - len(text.lstrip())
+                right_space = len(text) - len(text.rstrip())
+                core = text.strip()
+                if core:
+                    md_text += (" " * left_space) + f"_{core}_" + (" " * right_space)
+                else:
+                    md_text += text
             else:
                 md_text += text
-        elif run.italic:
-            left_space = len(text) - len(text.lstrip())
-            right_space = len(text) - len(text.rstrip())
-            core = text.strip()
-            if core:
-                md_text += (" " * left_space) + f"_{core}_" + (" " * right_space)
-            else:
-                md_text += text
-        else:
-            md_text += text
     return md_text
 
 def parse_docx_to_layered_json(file_path):
@@ -50,11 +58,13 @@ def parse_docx_to_layered_json(file_path):
     current_topic = os.path.basename(file_path).replace('.docx', '').replace('_', ' ')
     
     for para in doc.paragraphs:
-        plain_text = para.text.strip()
-        if not plain_text:
+        md_text = runs_to_markdown(para).strip()
+        if not md_text:
             continue
             
-        md_text = runs_to_markdown(para).strip()
+        plain_text = para.text.strip()
+        if not plain_text:
+            plain_text = md_text # Fallback if it's just an equation
             
         # Detect bullets
         is_list = para.style and para.style.name and para.style.name.startswith('List')
