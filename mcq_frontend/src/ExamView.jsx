@@ -22,7 +22,18 @@ const ExamView = () => {
         // Fetch questions from the backend
         axios.get('/api/questions/')
             .then(res => {
-                let allQ = res.data;
+                let allQ = res.data.map(q => {
+                    const opts = [...(q.options || [])];
+                    
+                    // Separate out "All of the above" or "None of the above" to keep them at the bottom
+                    const regularOpts = opts.filter(o => !o.content.toLowerCase().includes('of the above'));
+                    const specialOpts = opts.filter(o => o.content.toLowerCase().includes('of the above'));
+                    
+                    return {
+                        ...q,
+                        options: [...regularOpts.sort(() => 0.5 - Math.random()), ...specialOpts]
+                    };
+                });
                 const shuffled = allQ.sort(() => 0.5 - Math.random());
                 setAllQuestions(shuffled);
                 
