@@ -13,7 +13,12 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      <h1>MCQ Platform</h1>
+      <div className="brand-container">
+        <h1>MCQ Platform</h1>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem', letterSpacing: '0.5px' }}>
+          &copy; {new Date().getFullYear()} Mustafa Hussein Zwayyer
+        </div>
+      </div>
       <div className="nav-links">
         <Link to="/" className={isActive('/')}>Dashboard</Link>
         <Link to="/manage" className={isActive('/manage')}>Question Bank</Link>
@@ -41,9 +46,6 @@ function App() {
             </Routes>
           </Suspense>
         </div>
-        <footer style={{ textAlign: 'center', padding: '1.5rem', marginTop: 'auto', borderTop: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          &copy; {new Date().getFullYear()} Mustafa Hussein Zwayyer. All rights reserved.
-        </footer>
       </div>
     </Router>
   );
