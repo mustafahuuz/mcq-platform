@@ -58,12 +58,14 @@ def parse_docx_to_layered_json(file_path):
         level_1_points = sentences[:3]
         
         
-    # Split the paragraphs: first 60% to Level 2 (Summary), remaining 40% to Level 3 (Deep Dive)
+    # Level 2 is Summary (first 60%)
     total_paras = len(level_2_paragraphs)
     split_idx = int(total_paras * 0.6)
     
     l2_content = level_2_paragraphs[:split_idx]
-    l3_content = level_2_paragraphs[split_idx:]
+    
+    # Level 3 is the FULL text of the document to serve as a deep dive
+    l3_content = level_2_paragraphs
     
     if not l2_content:
         l2_content = ["No detailed summary available."]

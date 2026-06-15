@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { getSubjectColor } from './utils/colors';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 const SummaryViewer = () => {
     const [summaries, setSummaries] = useState([]);
@@ -223,9 +227,21 @@ const SummaryViewer = () => {
 
                                         {level === 3 && (
                                             <div>
-                                                <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem', fontSize: '1.1rem' }}>Deep Explanations & Examples</h4>
-                                                <div style={{ lineHeight: '1.8', color: 'var(--text-secondary)' }}>
-                                                    {renderLevel2(data.level_3)}
+                                                <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem', fontSize: '1.1rem' }}>Deep Explanations & Full Document</h4>
+                                                <div className="markdown-body" style={{ lineHeight: '1.8', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                                    <ReactMarkdown
+                                                        remarkPlugins={[remarkMath]}
+                                                        rehypePlugins={[rehypeKatex]}
+                                                        components={{
+                                                            p: ({node, ...props}) => <p style={{marginBottom: '1rem'}} {...props} />,
+                                                            li: ({node, ...props}) => <li style={{marginBottom: '0.5rem', marginLeft: '1.5rem'}} {...props} />,
+                                                            h1: ({node, ...props}) => <h1 style={{marginTop: '2rem', marginBottom: '1rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem'}} {...props} />,
+                                                            h2: ({node, ...props}) => <h2 style={{marginTop: '1.8rem', marginBottom: '0.8rem', color: 'var(--text-primary)'}} {...props} />,
+                                                            h3: ({node, ...props}) => <h3 style={{marginTop: '1.5rem', marginBottom: '0.8rem', color: 'var(--text-primary)'}} {...props} />,
+                                                        }}
+                                                    >
+                                                        {data.level_3}
+                                                    </ReactMarkdown>
                                                 </div>
                                             </div>
                                         )}
