@@ -8,7 +8,8 @@ django.setup()
 
 from core.models import QuestionBank, SubjectSummary, User
 
-SUMMARY_DIR = r"F:\PHD-MSQ\MCQ_System\book_summary"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SUMMARY_DIR = os.path.join(BASE_DIR, 'book_summary')
 
 def parse_docx_to_layered_json(file_path):
     doc = docx.Document(file_path)
