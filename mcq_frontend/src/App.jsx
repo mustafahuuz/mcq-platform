@@ -28,16 +28,23 @@ const Navbar = () => {
 function App() {
   return (
     <Router>
-      <Navbar />
-      <Suspense fallback={<div className="container" style={{ textAlign: 'center', marginTop: '10vh' }}><h2>Loading View...</h2></div>}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/manage" element={<div className="container"><QuestionBankManager /></div>} />
-          <Route path="/study" element={<SummaryViewer />} />
-          <Route path="/exam" element={<ExamView />} />
-          <Route path="/view-questions" element={<QuestionViewer />} />
-        </Routes>
-      </Suspense>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Navbar />
+        <div style={{ flex: '1 0 auto' }}>
+          <Suspense fallback={<div className="container" style={{ textAlign: 'center', marginTop: '10vh' }}><h2>Loading View...</h2></div>}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/manage" element={<div className="container"><QuestionBankManager /></div>} />
+              <Route path="/study" element={<SummaryViewer />} />
+              <Route path="/exam" element={<ExamView />} />
+              <Route path="/view-questions" element={<QuestionViewer />} />
+            </Routes>
+          </Suspense>
+        </div>
+        <footer style={{ textAlign: 'center', padding: '1.5rem', marginTop: 'auto', borderTop: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          &copy; {new Date().getFullYear()} Mustafa Hussein Zwayyer. All rights reserved.
+        </footer>
+      </div>
     </Router>
   );
 }
