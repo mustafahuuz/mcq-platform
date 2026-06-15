@@ -95,12 +95,12 @@ def run_import():
     
     # Simple mapping of filename keywords to subjects
     subject_keywords = {
-        'Deep_Learning': 'Advances in Deep Learning',
-        'DataMining': 'Data Mining',
-        'Cloud Computing': 'Handbook of Cloud Computing',
-        'Internet of Things': 'Internet of Things',
+        'Deep_learning': 'Advances in Deep Learning',
+        'Data_mining': 'Data Mining',
+        'Cloud_Computing': 'Handbook of Cloud Computing',
+        'Internet_of_Things': 'Internet of Things',
         'Multimedia': 'Fundamentals of Multimedia',
-        'Crypto': 'Cryptography and Network Security',
+        'security': 'Cryptography and Network Security',
     }
     
     count = 0
