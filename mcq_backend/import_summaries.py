@@ -2,7 +2,7 @@ import os
 import django
 import docx
 import json
-
+import re
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mcq_backend.settings')
 django.setup()
 
@@ -10,6 +10,34 @@ from core.models import QuestionBank, SubjectSummary, User
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUMMARY_DIR = os.path.join(BASE_DIR, 'book_summary')
+
+def runs_to_markdown(para):
+    md_text = ""
+    for run in para.runs:
+        text = run.text
+        if not text.strip():
+            md_text += text
+            continue
+            
+        if run.bold:
+            left_space = len(text) - len(text.lstrip())
+            right_space = len(text) - len(text.rstrip())
+            core = text.strip()
+            if core:
+                md_text += (" " * left_space) + f"**{core}**" + (" " * right_space)
+            else:
+                md_text += text
+        elif run.italic:
+            left_space = len(text) - len(text.lstrip())
+            right_space = len(text) - len(text.rstrip())
+            core = text.strip()
+            if core:
+                md_text += (" " * left_space) + f"_{core}_" + (" " * right_space)
+            else:
+                md_text += text
+        else:
+            md_text += text
+    return md_text
 
 def parse_docx_to_layered_json(file_path):
     doc = docx.Document(file_path)
@@ -22,34 +50,56 @@ def parse_docx_to_layered_json(file_path):
     current_topic = os.path.basename(file_path).replace('.docx', '').replace('_', ' ')
     
     for para in doc.paragraphs:
-        text = para.text.strip()
-        if not text:
+        plain_text = para.text.strip()
+        if not plain_text:
             continue
+            
+        md_text = runs_to_markdown(para).strip()
             
         # Detect bullets
         is_list = para.style and para.style.name and para.style.name.startswith('List')
-        if is_list or text.startswith('-') or text.startswith('•'):
-            clean_text = text.lstrip('-•* \t')
+        if is_list or plain_text.startswith('-') or plain_text.startswith('•'):
+            clean_text = md_text.lstrip('-•* \t')
             # Look for mistake markers
             if 'mistake' in clean_text.lower() or 'error' in clean_text.lower() or '⚠' in clean_text:
                 mistakes.append(clean_text)
             else:
                 level_1_points.append(clean_text)
+            level_2_paragraphs.append(f"- {clean_text}")
             continue
             
         # Detect bold runs for definitions
         has_bold = any(run.bold for run in para.runs)
-        if has_bold and ':' in text and len(text) < 150:
-            parts = text.split(':', 1)
+        if has_bold and ':' in plain_text and len(plain_text) < 150:
+            parts = plain_text.split(':', 1)
             definitions.append({
                 'term': parts[0].strip(),
                 'meaning': parts[1].strip()
             })
-            level_1_points.append(text)
-            continue
+            level_1_points.append(plain_text)
+            # Definitions can be formatted as blockquotes or bold headers later, let's keep it in md
+        
+        # Heading and Blockquote logic
+        is_heading = False
+        lower_md = plain_text.lower()
+        if lower_md.startswith("chapter "):
+            md_text = f"# {md_text}"
+            is_heading = True
+        elif re.match(r"^\d+\.\d+\.\d+\s", plain_text):
+            md_text = f"### {md_text}"
+            is_heading = True
+        elif re.match(r"^\d+\.\d+\s", plain_text):
+            md_text = f"## {md_text}"
+            is_heading = True
+        elif re.match(r"^\d+\.\s", plain_text) and len(plain_text.split()) < 10:
+            md_text = f"## {md_text}"
+            is_heading = True
             
-        # Otherwise, regular paragraph goes to level 2
-        level_2_paragraphs.append(text)
+        if not is_heading:
+            if lower_md.startswith("definition:") or lower_md.startswith("example:") or lower_md.startswith("mistake:") or lower_md.startswith("concept:"):
+                md_text = f"> {md_text}"
+                
+        level_2_paragraphs.append(md_text)
         
     # If no bullet points found, extract sentences from first paragraph
     if not level_1_points and level_2_paragraphs:

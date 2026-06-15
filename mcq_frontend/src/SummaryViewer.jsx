@@ -5,6 +5,8 @@ import { getSubjectColor } from './utils/colors';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import remarkToc from 'remark-toc';
+import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 
 const SummaryViewer = () => {
@@ -230,14 +232,52 @@ const SummaryViewer = () => {
                                                 <h4 style={{ color: 'var(--text-primary)', marginBottom: '1rem', fontSize: '1.1rem' }}>Deep Explanations & Full Document</h4>
                                                 <div className="markdown-body" style={{ lineHeight: '1.8', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                                                     <ReactMarkdown
-                                                        remarkPlugins={[remarkMath]}
-                                                        rehypePlugins={[rehypeKatex]}
+                                                        remarkPlugins={[remarkMath, [remarkToc, { heading: 'table of contents|contents|toc|chapter', maxDepth: 3 }]]}
+                                                        rehypePlugins={[rehypeKatex, rehypeSlug]}
                                                         components={{
-                                                            p: ({node, ...props}) => <p style={{marginBottom: '1rem'}} {...props} />,
-                                                            li: ({node, ...props}) => <li style={{marginBottom: '0.5rem', marginLeft: '1.5rem'}} {...props} />,
-                                                            h1: ({node, ...props}) => <h1 style={{marginTop: '2rem', marginBottom: '1rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem'}} {...props} />,
-                                                            h2: ({node, ...props}) => <h2 style={{marginTop: '1.8rem', marginBottom: '0.8rem', color: 'var(--text-primary)'}} {...props} />,
-                                                            h3: ({node, ...props}) => <h3 style={{marginTop: '1.5rem', marginBottom: '0.8rem', color: 'var(--text-primary)'}} {...props} />,
+                                                            p: ({node, ...props}) => <p style={{marginBottom: '1rem', fontSize: '1.05rem', lineHeight: '1.8'}} {...props} />,
+                                                            li: ({node, ...props}) => <li style={{marginBottom: '0.5rem', marginLeft: '1.5rem', fontSize: '1.05rem'}} {...props} />,
+                                                            h1: ({node, ...props}) => <h1 style={{marginTop: '2.5rem', marginBottom: '1.5rem', color: 'var(--text-primary)', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem', fontSize: '2rem'}} {...props} />,
+                                                            h2: ({node, ...props}) => <h2 style={{marginTop: '2rem', marginBottom: '1rem', color: 'var(--primary-color)', fontSize: '1.6rem'}} {...props} />,
+                                                            h3: ({node, ...props}) => <h3 style={{marginTop: '1.5rem', marginBottom: '0.8rem', color: 'var(--text-primary)', fontSize: '1.3rem'}} {...props} />,
+                                                            blockquote: ({node, children, ...props}) => {
+                                                                const text = String(children[1]?.props?.children || children).toLowerCase();
+                                                                let bg = 'rgba(255,255,255,0.05)';
+                                                                let border = 'var(--border-color)';
+                                                                let icon = '📌';
+                                                                
+                                                                if (text.includes('definition:')) {
+                                                                    bg = 'rgba(59, 130, 246, 0.1)'; // blue
+                                                                    border = '#3b82f6';
+                                                                    icon = '📖';
+                                                                } else if (text.includes('example:')) {
+                                                                    bg = 'rgba(16, 185, 129, 0.1)'; // green
+                                                                    border = 'var(--success-color)';
+                                                                    icon = '💡';
+                                                                } else if (text.includes('mistake:') || text.includes('error:')) {
+                                                                    bg = 'rgba(239, 68, 68, 0.1)'; // red
+                                                                    border = 'var(--danger-color)';
+                                                                    icon = '⚠️';
+                                                                } else if (text.includes('concept:')) {
+                                                                    bg = 'rgba(139, 92, 246, 0.1)'; // purple
+                                                                    border = '#8b5cf6';
+                                                                    icon = '🧠';
+                                                                }
+                                                                
+                                                                return (
+                                                                    <blockquote style={{
+                                                                        background: bg,
+                                                                        borderLeft: `4px solid ${border}`,
+                                                                        padding: '1rem 1.5rem',
+                                                                        margin: '1.5rem 0',
+                                                                        borderRadius: '0 8px 8px 0',
+                                                                        position: 'relative'
+                                                                    }} {...props}>
+                                                                        <span style={{ position: 'absolute', left: '-12px', top: '-12px', fontSize: '1.5rem', background: 'var(--surface-color)', borderRadius: '50%', padding: '2px' }}>{icon}</span>
+                                                                        {children}
+                                                                    </blockquote>
+                                                                );
+                                                            }
                                                         }}
                                                     >
                                                         {data.level_3}
